@@ -23,9 +23,25 @@ open class AlertVisualStyle: NSObject {
     @objc
     public var backgroundColor: UIColor?
 
+    /// The background color of the action sheet Cancel button. The standard blur effect will be added if nil.
+    @objc
+    public var actionViewCancelBackgroundColor: UIColor? = {
+        guard #available(iOS 13.0, *) else {
+            return .white
+        }
+
+        return UIColor { traitCollection in
+            if traitCollection.userInterfaceStyle == .dark {
+                return UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1)
+            }
+
+            return .white
+        }
+    }()
+
     /// The vertical spacing between elements
     @objc
-    public var verticalElementSpacing: CGFloat = 24
+    public var verticalElementSpacing: CGFloat = 28
 
     /// The size of an action. The specified width is treated as a minimum width. The actual width is
     /// automatically determined.
@@ -34,7 +50,7 @@ open class AlertVisualStyle: NSObject {
 
     /// The color of an action when the user is tapping it
     @objc
-    public var actionHighlightColor = UIColor(white: 0.8, alpha: 0.7)
+    public var actionHighlightColor = UIColor(white: 0.5, alpha: 0.3)
 
     /// The color of the separators between actions
     @objc
@@ -78,9 +94,13 @@ open class AlertVisualStyle: NSObject {
     @objc
     public var textFieldMargins = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
 
-    /// The color for a nondestructive action's text
+    /// The color for a normal action's text
     @objc
     public var normalTextColor: UIColor?
+
+    /// The color for a preferred action's text. If `nil`, `normalTextColor` is used.
+    @objc
+    public var preferredTextColor: UIColor?
 
     /// The color for a destructive action's text
     @objc
@@ -101,6 +121,28 @@ open class AlertVisualStyle: NSObject {
     /// The font for an action sheet's other actions
     @objc
     public var actionSheetNormalFont = UIFont.systemFont(ofSize: 20)
+
+    /// The color that dims the surrounding background of the alert to make it stand out more.
+    @objc
+    public var dimmingColor: UIColor = {
+        if #available(iOS 13.0, *) {
+            return UIColor { traitCollection in
+                return UIColor(white: 0, alpha: traitCollection.userInterfaceStyle == .dark ? 0.48 : 0.2)
+            }
+        } else {
+            return UIColor(white: 0, alpha: 0.2)
+        }
+    }()
+
+    var blurEffect: UIBlurEffect {
+        if #available(iOS 13, *) {
+            return UIBlurEffect(style: .systemMaterial)
+        } else if #available(iOS 10, *) {
+            return UIBlurEffect(style: .prominent)
+        } else {
+            return UIBlurEffect(style: .extraLight)
+        }
+    }
 
     /// The style of the alert.
     private let alertStyle: AlertControllerStyle
@@ -139,7 +181,13 @@ open class AlertVisualStyle: NSObject {
     /// - returns: The text color, or nil to use the alert's `tintColor`.
     @objc
     open func textColor(for action: AlertAction?) -> UIColor? {
-        return action?.style == .destructive ? self.destructiveTextColor : self.normalTextColor
+        if action?.style == .destructive {
+            return self.destructiveTextColor
+        } else if action?.style == .preferred {
+            return self.preferredTextColor ?? self.normalTextColor
+        } else {
+            return self.normalTextColor
+        }
     }
 
     /// The font for a given action.

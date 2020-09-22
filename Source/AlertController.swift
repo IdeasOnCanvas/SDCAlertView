@@ -129,7 +129,8 @@ public final class AlertController: UIViewController {
     public let preferredStyle: AlertControllerStyle
 
     private let alert: UIView & AlertControllerViewRepresentable
-    private lazy var transitionDelegate: Transition = Transition(alertStyle: self.preferredStyle)
+    private lazy var transitionDelegate = Transition(alertStyle: self.preferredStyle,
+                                                     dimmingViewColor: self.visualStyle.dimmingColor)
 
     // MARK: - Initialization
 
@@ -173,13 +174,7 @@ public final class AlertController: UIViewController {
             self.alert = AlertView()
 
         case .actionSheet:
-            let nibName = String(describing: ActionSheetView.self)
-            let objects = Bundle.resourceBundle.loadNibNamed(nibName, owner: nil, options: nil)
-            if let actionSheet = objects?.first as? ActionSheetView {
-                self.alert = actionSheet
-            } else {
-                self.alert = AlertView()
-            }
+            self.alert = ActionSheetView()
         }
 
         self.preferredStyle = preferredStyle
@@ -243,6 +238,11 @@ public final class AlertController: UIViewController {
     /// - parameter completion: An optional closure that's called when the dismissal finishes.
     @objc(dismissViewControllerAnimated:completion:)
     public override func dismiss(animated: Bool = true, completion: (() -> Void)? = nil) {
+        guard presentedViewController == nil else {
+            super.dismiss(animated: animated, completion: completion)
+            return
+        }
+
         self.willDismissHandler?()
         self.presentingViewController?.dismiss(animated: animated, completion: completion)
     }
